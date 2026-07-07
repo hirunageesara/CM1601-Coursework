@@ -8,7 +8,6 @@ public class InventoryItem {
     private String dateAdded;
     private String imageFile;
 
-
     public InventoryItem(String partCode, String partName, String brand,
                          double price, int quantity, String category,
                          String dateAdded, String imageFile) {
@@ -34,10 +33,11 @@ public class InventoryItem {
         return brand;
     }
 
-    public String getPrice() {
+    public double getPrice() {
         return price;
     }
-    public String getquantity() {
+
+    public int getQuantity() {
         return quantity;
     }
 
@@ -53,10 +53,6 @@ public class InventoryItem {
         return imageFile;
     }
 
-    public void setPartCode(String partCode) {
-        this.partCode = partCode;
-    }
-
     public void setPartName(String partName) {
         this.partName = partName;
     }
@@ -64,13 +60,15 @@ public class InventoryItem {
     public void setBrand(String brand) {
         this.brand = brand;
     }
-    public void setPrice(String price) {
+
+    public void setPrice(double price) {
         this.price = price;
     }
 
-    public void setQuantity(String quantity) {
+    public void setQuantity(int quantity) {
         this.quantity = quantity;
     }
+
     public void setCategory(String category) {
         this.category = category;
     }
@@ -82,13 +80,13 @@ public class InventoryItem {
     public void setImageFile(String imageFile) {
         this.imageFile = imageFile;
     }
-    public double getTotalVlue(){
-        return price*quantity;
+
+    public double getTotalValue() {
+        return price * quantity;
     }
-    public String toString(){
-        return partCode+"|"+partName+"|"+brand+"| Rs."+
-                price+"|Qty:"+quantity+"|"+category;
+
+    public String toString() {
+        return partCode + " | " + partName + " | " + brand + " | Rs." +
+                price + " | Qty: " + quantity + " | " + category;
     }
 }
-
-
