@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane
+        prefHeight="650.0"
+        prefWidth="1000.0"
+        xmlns="http://javafx.com/javafx/26"
+        xmlns:fx="http://javafx.com/fxml/1"
+        fx:controller="MainController">
+
+   <top>
+      <HBox
+              alignment="CENTER"
+              prefHeight="60.0">
+
+         <Label
+                 fx:id="titleLabel"
+                 text="Malabe Spares Depot Inventory System"
+                 style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
+
+         <padding>
+            <Insets
+                    top="15"
+                    right="15"
+                    bottom="15"
+                    left="15"/>
+         </padding>
+      </HBox>
+   </top>
+
+   <left>
+      <VBox
+              spacing="10"
+              prefWidth="170.0"
+              style="-fx-background-color: #eeeeee;">
+
+         <padding>
+            <Insets
+                    top="20"
+                    right="15"
+                    bottom="20"
+                    left="15"/>
+         </padding>
+
+         <Button
+                 prefWidth="140"
+                 text="View Inventory"
+                 onAction="#handleViewInventory"/>
+
+         <Button
+                 prefWidth="140"
+                 text="Add Part"
+                 onAction="#handleAddPart"/>
+
+         <Button
+                 prefWidth="140"
+                 text="Update Part"
+                 onAction="#handleUpdatePart"/>
+
+         <Button
+                 prefWidth="140"
+                 text="Delete Part"
+                 onAction="#handleDeletePart"/>
+
+         <Button
+                 prefWidth="140"
+                 text="Search Parts"
+                 onAction="#handleSearchParts"/>
+
+         <Button
+                 prefWidth="140"
+                 text="Low Stock"
+                 onAction="#handleLowStock"/>
+
+         <Button
+                 prefWidth="140"
+                 text="Dealer Selection"
+                 onAction="#handleDealerSelection"/>
+
+         <Button
+                 prefWidth="140"
+                 text="Point of Sale"
+                 onAction="#handlePointOfSale"/>
+
+         <Button
+                 prefWidth="140"
+                 text="Exit"
+                 onAction="#handleExit"/>
+
+      </VBox>
+   </left>
+
+   <center>
+      <VBox spacing="10">
+
+         <padding>
+            <Insets
+                    top="15"
+                    right="15"
+                    bottom="15"
+                    left="15"/>
+         </padding>
+
+         <TableView
+                 fx:id="inventoryTable"
+                 VBox.vgrow="ALWAYS">
+
+            <columns>
+
+               <TableColumn
+                       fx:id="colCode"
+                       prefWidth="90"
+                       text="Part Code"/>
+
+               <TableColumn
+                       fx:id="colName"
+                       prefWidth="160"
+                       text="Part Name"/>
+
+               <TableColumn
+                       fx:id="colBrand"
+                       prefWidth="110"
+                       text="Brand"/>
+
+               <TableColumn
+                       fx:id="colPrice"
+                       prefWidth="90"
+                       text="Price"/>
+
+               <TableColumn
+                       fx:id="colQuantity"
+                       prefWidth="80"
+                       text="Quantity"/>
+
+               <TableColumn
+                       fx:id="colCategory"
+                       prefWidth="110"
+                       text="Category"/>
+
+               <TableColumn
+                       fx:id="colDateAdded"
+                       prefWidth="110"
+                       text="Date Added"/>
+
+            </columns>
+         </TableView>
+
+         <Label
+                 fx:id="statusLabel"
+                 text="Click View Inventory to display inventory data."/>
+
+      </VBox>
+   </center>
+
+</BorderPane>
