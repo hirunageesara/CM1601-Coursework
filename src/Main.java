@@ -53,12 +53,41 @@ public class Main {
                 System.out.print("Enter brand: ");
                 String brand = input.nextLine();
 
-                System.out.print("Enter price: ");
-                double price = Double.parseDouble(input.nextLine());
+                double price;
 
-                System.out.print("Enter quantity: ");
-                int quantity = Integer.parseInt(input.nextLine());
+                while (true) {
+                    try {
+                        System.out.print("Enter price: ");
+                        price = Double.parseDouble(input.nextLine());
 
+                        if (price <= 0) {
+                            System.out.println("Invalid price! Price must be greater than 0.");
+                        } else {
+                            break;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("Invalid price! Please enter numbers only.");
+                    }
+                }
+                System.out.println("Price = " + price);
+                int quantity;
+                while (true) {
+                    try {
+                        System.out.print("Enter quantity: ");
+                        quantity = Integer.parseInt(input.nextLine());
+
+                        if (quantity < 0) {
+                            System.out.println("Invalid quantity! Quantity cannot be negative.");
+                        } else {
+                            break;
+                        }
+
+                    } catch (NumberFormatException e) {
+                        System.out.println("Invalid quantity! Please enter a whole number.");
+                    }
+                }
+
+                System.out.println("Quantity = " + quantity);
                 System.out.print("Enter category: ");
                 String category = input.nextLine();
 
