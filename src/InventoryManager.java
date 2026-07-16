@@ -12,7 +12,7 @@ public class InventoryManager {
     public void viewAllItems() {
         sortByCategoryAndCode();
 
-        System.out.println("\n========== INVENTORY ITEMS ==========");
+        System.out.println("\nINVENTORY ITEMS");
 
         for (InventoryItem item : items) {
             System.out.println(item);
