@@ -1,14 +1,21 @@
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Optional;
+import java.util.Random;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.cell.PropertyValueFactory;
+
 
 public class MainController {
 
@@ -44,51 +51,87 @@ public class MainController {
 
     private ArrayList<InventoryItem> inventoryItems;
     private InventoryManager inventoryManager;
+    private CartManager cartManager;
+    private InventoryItem lastSelectedItem;
 
     @FXML
     public void initialize() {
 
-        titleLabel.setText("Malabe Spares Depot Inventory System");
+        titleLabel.setText(
+                "Malabe Spares Depot Inventory System"
+        );
 
-        // Connect each table column to InventoryItem getter methods.
+        inventoryTable.getSelectionModel()
+                .setSelectionMode(SelectionMode.SINGLE);
+
         colCode.setCellValueFactory(
-                new PropertyValueFactory<>("partCode"));
+                new PropertyValueFactory<>("partCode")
+        );
 
         colName.setCellValueFactory(
-                new PropertyValueFactory<>("partName"));
+                new PropertyValueFactory<>("partName")
+        );
 
         colBrand.setCellValueFactory(
-                new PropertyValueFactory<>("brand"));
+                new PropertyValueFactory<>("brand")
+        );
 
         colPrice.setCellValueFactory(
-                new PropertyValueFactory<>("price"));
+                new PropertyValueFactory<>("price")
+        );
 
         colQuantity.setCellValueFactory(
-                new PropertyValueFactory<>("quantity"));
+                new PropertyValueFactory<>("quantity")
+        );
 
         colCategory.setCellValueFactory(
-                new PropertyValueFactory<>("category"));
+                new PropertyValueFactory<>("category")
+        );
 
         colDateAdded.setCellValueFactory(
-                new PropertyValueFactory<>("dateAdded"));
+                new PropertyValueFactory<>("dateAdded")
+        );
 
-        // Load existing inventory when the application starts.
+        inventoryTable.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((observable, oldItem, newItem) -> {
+
+                    if (newItem != null) {
+
+                        lastSelectedItem = newItem;
+
+                        statusLabel.setText(
+                                "Selected: "
+                                        + newItem.getPartCode()
+                                        + " - "
+                                        + newItem.getPartName()
+                        );
+                    }
+                });
+
         loadInventory();
+        refreshInventoryTable();
     }
-
     private void loadInventory() {
 
-        inventoryItems =
-                FileHandler.loadInventory("inventory_legacy.txt");
+        inventoryItems = FileHandler.loadInventory(
+                "inventory_legacy.txt"
+        );
 
-        inventoryManager =
-                new InventoryManager(inventoryItems);
+        inventoryManager = new InventoryManager(
+                inventoryItems
+        );
 
-        statusLabel.setText(
-                inventoryItems.size() + " inventory items loaded.");
+        cartManager = new CartManager(
+                inventoryManager
+        );
     }
 
     private void refreshInventoryTable() {
+
+        InventoryItem previouslySelected =
+                inventoryTable.getSelectionModel()
+                        .getSelectedItem();
 
         inventoryTable.setItems(
                 FXCollections.observableArrayList(
@@ -98,9 +141,28 @@ public class MainController {
 
         inventoryTable.refresh();
 
+        if (previouslySelected != null) {
+
+            for (InventoryItem item :
+                    inventoryTable.getItems()) {
+
+                if (item.getPartCode()
+                        .equalsIgnoreCase(
+                                previouslySelected.getPartCode()
+                        )) {
+
+                    inventoryTable.getSelectionModel()
+                            .select(item);
+
+                    inventoryTable.scrollTo(item);
+                    break;
+                }
+            }
+        }
+
         statusLabel.setText(
                 inventoryManager.getTotalParts()
-                        + " parts displayed. Total value: Rs. "
+                        + " parts displayed | Total value: Rs. "
                         + String.format(
                         "%.2f",
                         inventoryManager.getTotalValue()
@@ -108,129 +170,123 @@ public class MainController {
         );
     }
 
+    // =====================================================
+    // VIEW INVENTORY
+    // =====================================================
+
     @FXML
     private void handleViewInventory() {
 
-        // Uses your own manual Bubble Sort method.
         inventoryManager.sortByCategoryAndCode();
-
         refreshInventoryTable();
+
+        statusLabel.setText(
+                "Inventory sorted by category and part code."
+        );
     }
+
+    // =====================================================
+    // ADD PART
+    // =====================================================
 
     @FXML
     private void handleAddPart() {
 
-        TextInputDialog codeDialog = new TextInputDialog();
-        codeDialog.setTitle("Add Part");
-        codeDialog.setHeaderText("Enter Part Code");
-        codeDialog.setContentText("Part Code:");
-
-        String partCode = codeDialog.showAndWait().orElse("").trim();
-
-        if (partCode.isEmpty()) {
-            showError("Invalid Input", "Part code cannot be empty.");
-            return;
-        }
-
-        if (inventoryManager.findItemByCode(partCode) != null) {
-            showError("Duplicate Code", "This part code already exists.");
-            return;
-        }
-
-        TextInputDialog nameDialog = new TextInputDialog();
-        nameDialog.setTitle("Add Part");
-        nameDialog.setHeaderText("Enter Part Name");
-        nameDialog.setContentText("Part Name:");
-
-        String partName = nameDialog.showAndWait().orElse("").trim();
-
-        if (partName.isEmpty()) {
-            showError("Invalid Input", "Part name cannot be empty.");
-            return;
-        }
-
-        TextInputDialog brandDialog = new TextInputDialog();
-        brandDialog.setTitle("Add Part");
-        brandDialog.setHeaderText("Enter Brand");
-        brandDialog.setContentText("Brand:");
-
-        String brand = brandDialog.showAndWait().orElse("").trim();
-
-        if (brand.isEmpty()) {
-            showError("Invalid Input", "Brand cannot be empty.");
-            return;
-        }
-
-        TextInputDialog priceDialog = new TextInputDialog();
-        priceDialog.setTitle("Add Part");
-        priceDialog.setHeaderText("Enter Price");
-        priceDialog.setContentText("Price:");
-
-        String priceText = priceDialog.showAndWait().orElse("").trim();
-
-        double price;
-
-        try {
-            price = Double.parseDouble(priceText);
-
-            if (price <= 0) {
-                showError("Invalid Input", "Price must be greater than zero.");
-                return;
-            }
-
-        } catch (NumberFormatException e) {
-            showError("Invalid Input", "Price must be a valid number.");
-            return;
-        }
-
-        TextInputDialog quantityDialog = new TextInputDialog();
-        quantityDialog.setTitle("Add Part");
-        quantityDialog.setHeaderText("Enter Quantity");
-        quantityDialog.setContentText("Quantity:");
-
-        String quantityText = quantityDialog.showAndWait().orElse("").trim();
-
-        int quantity;
-
-        try {
-            quantity = Integer.parseInt(quantityText);
-
-            if (quantity < 0) {
-                showError("Invalid Input", "Quantity cannot be negative.");
-                return;
-            }
-
-        } catch (NumberFormatException e) {
-            showError("Invalid Input", "Quantity must be a whole number.");
-            return;
-        }
-
-        TextInputDialog categoryDialog = new TextInputDialog();
-        categoryDialog.setTitle("Add Part");
-        categoryDialog.setHeaderText("Enter Category");
-        categoryDialog.setContentText(
-                "Category (Engine, Electrical, Bodywork or Brakes):"
+        String code = getTextInput(
+                "Add Part",
+                "Enter Part Code",
+                "Part Code:"
         );
 
-        String category = categoryDialog.showAndWait().orElse("").trim();
-
-        if (category.isEmpty()) {
-            showError("Invalid Input", "Category cannot be empty.");
+        if (code == null) {
             return;
         }
 
-        String dateAdded = java.time.LocalDate.now().toString();
-        String imageFile = "no_image.png";
+        if (code.isEmpty()) {
+            showError(
+                    "Invalid Input",
+                    "Part code cannot be empty."
+            );
+            return;
+        }
+
+        if (inventoryManager.findItemByCode(code) != null) {
+            showError(
+                    "Duplicate Code",
+                    "This part code already exists."
+            );
+            return;
+        }
+
+        String name = getTextInput(
+                "Add Part",
+                "Enter Part Name",
+                "Part Name:"
+        );
+
+        if (name == null || name.isEmpty()) {
+            showError(
+                    "Invalid Input",
+                    "Part name cannot be empty."
+            );
+            return;
+        }
+
+        String brand = getTextInput(
+                "Add Part",
+                "Enter Brand",
+                "Brand:"
+        );
+
+        if (brand == null || brand.isEmpty()) {
+            showError(
+                    "Invalid Input",
+                    "Brand cannot be empty."
+            );
+            return;
+        }
+
+        Double price = getValidPrice(
+                "Add Part",
+                "Enter Price"
+        );
+
+        if (price == null) {
+            return;
+        }
+
+        Integer quantity = getValidQuantity(
+                "Add Part",
+                "Enter Quantity"
+        );
+
+        if (quantity == null) {
+            return;
+        }
+
+        String category = getTextInput(
+                "Add Part",
+                "Enter Category",
+                "Engine, Electrical, Bodywork or Brakes:"
+        );
+
+        if (category == null || category.isEmpty()) {
+            showError(
+                    "Invalid Input",
+                    "Category cannot be empty."
+            );
+            return;
+        }
 
         InventoryItem newItem = new InventoryItem(
-                partCode,
-                partName,
+                code,
+                name,
                 brand,
                 price,
                 quantity,
                 category,
-                dateAdded,
-                imageFile
+                LocalDate.now().toString(),
+                "no_image.png"
         );
 
         inventoryManager.addItem(newItem);
@@ -243,67 +299,187 @@ public class MainController {
         );
     }
 
+    // =====================================================
+    // UPDATE PART
+    // =====================================================
+
     @FXML
     private void handleUpdatePart() {
 
         InventoryItem selectedItem =
-                inventoryTable.getSelectionModel().getSelectedItem();
+                getSelectedItem();
 
         if (selectedItem == null) {
-            showError(
-                    "No Part Selected",
-                    "Please select an inventory item from the table."
-            );
             return;
         }
 
-        showMessage(
+        Double newPrice = getValidPrice(
                 "Update Part",
-                "Selected part: "
-                        + selectedItem.getPartCode()
-                        + " - "
+                "Enter new price for "
                         + selectedItem.getPartName()
         );
-    }
 
-    @FXML
-    private void handleDeletePart() {
-
-        InventoryItem selectedItem =
-                inventoryTable.getSelectionModel().getSelectedItem();
-
-        if (selectedItem == null) {
-            showError(
-                    "No Part Selected",
-                    "Please select an inventory item before deleting."
-            );
+        if (newPrice == null) {
             return;
         }
 
-        inventoryManager.deleteItem(
-                selectedItem.getPartCode()
+        Integer newQuantity = getValidQuantity(
+                "Update Part",
+                "Enter new quantity for "
+                        + selectedItem.getPartName()
+        );
+
+        if (newQuantity == null) {
+            return;
+        }
+
+        inventoryManager.updateItem(
+                selectedItem.getPartCode(),
+                newPrice,
+                newQuantity
         );
 
         refreshInventoryTable();
 
         showMessage(
-                "Part Deleted",
-                selectedItem.getPartCode()
-                        + " was deleted successfully."
+                "Part Updated",
+                "Part updated successfully."
         );
     }
+
+    // =====================================================
+    // DELETE PART
+    // =====================================================
+
+    @FXML
+    private void handleDeletePart() {
+
+        InventoryItem selectedItem =
+                getSelectedItem();
+
+        if (selectedItem == null) {
+            return;
+        }
+
+        Alert confirmation =
+                new Alert(Alert.AlertType.CONFIRMATION);
+
+        confirmation.setTitle("Delete Part");
+
+        confirmation.setHeaderText(
+                "Delete "
+                        + selectedItem.getPartName()
+                        + "?"
+        );
+
+        confirmation.setContentText(
+                "Part Code: "
+                        + selectedItem.getPartCode()
+        );
+
+        Optional<ButtonType> answer =
+                confirmation.showAndWait();
+
+        if (answer.isPresent()
+                && answer.get() == ButtonType.OK) {
+
+            inventoryManager.deleteItem(
+                    selectedItem.getPartCode()
+            );
+
+            refreshInventoryTable();
+
+            showMessage(
+                    "Part Deleted",
+                    "Part deleted successfully."
+            );
+        }
+    }
+
+    // =====================================================
+    // SEARCH PARTS
+    // =====================================================
 
     @FXML
     private void handleSearchParts() {
 
-        showMessage(
+        String keyword = getTextInput(
                 "Search Parts",
-                "The Search Parts form will be implemented next."
+                "Search by code, name or brand",
+                "Keyword:"
         );
+
+        if (keyword == null) {
+            return;
+        }
+
+        keyword = keyword.toLowerCase();
+
+        ArrayList<InventoryItem> results =
+                new ArrayList<>();
+
+        for (InventoryItem item :
+                inventoryManager.getItems()) {
+
+            boolean matches =
+                    item.getPartCode()
+                            .toLowerCase()
+                            .contains(keyword)
+                            ||
+                            item.getPartName()
+                                    .toLowerCase()
+                                    .contains(keyword)
+                            ||
+                            item.getBrand()
+                                    .toLowerCase()
+                                    .contains(keyword)
+                            ||
+                            item.getCategory()
+                                    .toLowerCase()
+                                    .contains(keyword);
+
+            if (matches) {
+                results.add(item);
+            }
+        }
+
+        inventoryTable.setItems(
+                FXCollections.observableArrayList(
+                        results
+                )
+        );
+
+        inventoryTable.refresh();
+
+        statusLabel.setText(
+                results.size()
+                        + " matching item(s) found."
+        );
+
+        if (results.isEmpty()) {
+            showMessage(
+                    "Search Results",
+                    "No matching items found."
+            );
+        }
     }
+
+    // =====================================================
+    // LOW STOCK
+    // =====================================================
 
     @FXML
     private void handleLowStock() {
+
+        Integer threshold = getValidPositiveInteger(
+                "Low Stock",
+                "Enter low-stock threshold",
+                "Threshold:"
+        );
+
+        if (threshold == null) {
+            return;
+        }
 
         ArrayList<InventoryItem> lowStockItems =
                 new ArrayList<>();
@@ -311,7 +487,7 @@ public class MainController {
         for (InventoryItem item :
                 inventoryManager.getItems()) {
 
-            if (item.getQuantity() < 10) {
+            if (item.getQuantity() < threshold) {
                 lowStockItems.add(item);
             }
         }
@@ -326,27 +502,267 @@ public class MainController {
 
         statusLabel.setText(
                 lowStockItems.size()
-                        + " low-stock items displayed."
+                        + " item(s) below quantity "
+                        + threshold
+                        + "."
         );
+
+        if (lowStockItems.isEmpty()) {
+            showMessage(
+                    "Low Stock",
+                    "No low-stock items found."
+            );
+        }
     }
+
+    // =====================================================
+    // DEALER SELECTION
+    // =====================================================
 
     @FXML
     private void handleDealerSelection() {
 
-        showMessage(
-                "Dealer Selection",
-                "The Dealer Selection page will be implemented next."
+        ArrayList<Dealer> dealers =
+                FileHandler.loadDealers(
+                        "dealers_legacy.txt"
+                );
+
+        if (dealers.size() < 4) {
+            showError(
+                    "Dealer Selection",
+                    "At least four dealers are required."
+            );
+            return;
+        }
+
+        ArrayList<Dealer> selectedDealers =
+                selectRandomFourDealers(dealers);
+
+        sortDealersByLocation(selectedDealers);
+
+        StringBuilder text =
+                new StringBuilder();
+
+        text.append(
+                "RANDOMLY SELECTED DEALERS\n\n"
         );
+
+        for (Dealer dealer :
+                selectedDealers) {
+
+            text.append("Dealer ID: ")
+                    .append(dealer.getDealerId())
+                    .append("\n");
+
+            text.append("Dealer Name: ")
+                    .append(dealer.getDealerName())
+                    .append("\n");
+
+            text.append("Phone: ")
+                    .append(dealer.getPhoneNumber())
+                    .append("\n");
+
+            text.append("Location: ")
+                    .append(dealer.getLocation())
+                    .append("\n");
+
+            text.append(
+                    "------------------------------\n"
+            );
+        }
+
+        TextArea area =
+                new TextArea(text.toString());
+
+        area.setEditable(false);
+        area.setPrefWidth(450);
+        area.setPrefHeight(350);
+
+        Alert alert =
+                new Alert(Alert.AlertType.INFORMATION);
+
+        alert.setTitle("Dealer Selection");
+        alert.setHeaderText(
+                "Four dealers sorted by location"
+        );
+
+        alert.getDialogPane().setContent(area);
+        alert.showAndWait();
     }
+
+    private ArrayList<Dealer> selectRandomFourDealers(
+            ArrayList<Dealer> dealers) {
+
+        ArrayList<Dealer> selected =
+                new ArrayList<>();
+
+        Random random = new Random();
+
+        while (selected.size() < 4) {
+
+            Dealer dealer = dealers.get(
+                    random.nextInt(dealers.size())
+            );
+
+            boolean exists = false;
+
+            for (Dealer current : selected) {
+
+                if (current.getDealerId()
+                        .equalsIgnoreCase(
+                                dealer.getDealerId()
+                        )) {
+
+                    exists = true;
+                    break;
+                }
+            }
+
+            if (!exists) {
+                selected.add(dealer);
+            }
+        }
+
+        return selected;
+    }
+
+    private void sortDealersByLocation(
+            ArrayList<Dealer> dealers) {
+
+        for (int i = 0;
+             i < dealers.size() - 1;
+             i++) {
+
+            for (int j = 0;
+                 j < dealers.size() - i - 1;
+                 j++) {
+
+                Dealer first =
+                        dealers.get(j);
+
+                Dealer second =
+                        dealers.get(j + 1);
+
+                if (first.getLocation()
+                        .compareToIgnoreCase(
+                                second.getLocation()
+                        ) > 0) {
+
+                    dealers.set(j, second);
+                    dealers.set(j + 1, first);
+                }
+            }
+        }
+    }
+
+    // =====================================================
+    // POINT OF SALE
+    // =====================================================
 
     @FXML
     private void handlePointOfSale() {
 
-        showMessage(
+        String code = getTextInput(
                 "Point of Sale",
-                "The Point of Sale page will be implemented next."
+                "Enter Part Code",
+                "Part Code:"
         );
+
+        if (code == null || code.isEmpty()) {
+            return;
+        }
+
+        InventoryItem item =
+                inventoryManager.findItemByCode(code);
+
+        if (item == null) {
+            showError(
+                    "Item Not Found",
+                    "No item found with part code "
+                            + code
+            );
+            return;
+        }
+
+        Integer quantity = getValidPositiveInteger(
+                "Point of Sale",
+                "Available stock: "
+                        + item.getQuantity(),
+                "Quantity:"
+        );
+
+        if (quantity == null) {
+            return;
+        }
+
+        if (quantity > item.getQuantity()) {
+            showError(
+                    "Insufficient Stock",
+                    "Only "
+                            + item.getQuantity()
+                            + " item(s) available."
+            );
+            return;
+        }
+
+        cartManager.clearCart();
+
+        cartManager.addToCart(
+                code,
+                quantity
+        );
+
+        double total =
+                cartManager.calculateTotal();
+
+        Alert confirmation =
+                new Alert(Alert.AlertType.CONFIRMATION);
+
+        confirmation.setTitle("Checkout");
+
+        confirmation.setHeaderText(
+                item.getPartName()
+        );
+
+        confirmation.setContentText(
+                "Quantity: "
+                        + quantity
+                        + "\nTotal: Rs. "
+                        + String.format(
+                        "%.2f",
+                        total
+                )
+                        + "\n\nComplete checkout?"
+        );
+
+        Optional<ButtonType> answer =
+                confirmation.showAndWait();
+
+        if (answer.isPresent()
+                && answer.get() == ButtonType.OK) {
+
+            cartManager.checkout();
+
+            refreshInventoryTable();
+
+            showMessage(
+                    "Checkout Complete",
+                    "Sale completed successfully.\n"
+                            + "Total: Rs. "
+                            + String.format(
+                            "%.2f",
+                            total
+                    )
+            );
+
+        } else {
+            cartManager.clearCart();
+        }
     }
+
+    // =====================================================
+    // EXIT
+    // =====================================================
 
     @FXML
     private void handleExit() {
@@ -357,6 +773,181 @@ public class MainController {
         );
 
         Platform.exit();
+    }
+
+    // =====================================================
+    // HELPER METHODS
+    // =====================================================
+
+    private InventoryItem getSelectedItem() {
+
+        InventoryItem selectedItem =
+                inventoryTable
+                        .getSelectionModel()
+                        .getSelectedItem();
+
+        if (selectedItem == null) {
+            selectedItem = lastSelectedItem;
+        }
+
+        if (selectedItem == null) {
+
+            showError(
+                    "No Part Selected",
+                    "Click directly on a data row first, then click Update or Delete."
+            );
+        }
+
+        return selectedItem;
+    }
+
+    private String getTextInput(
+            String title,
+            String header,
+            String label) {
+
+        TextInputDialog dialog =
+                new TextInputDialog();
+
+        dialog.setTitle(title);
+        dialog.setHeaderText(header);
+        dialog.setContentText(label);
+
+        Optional<String> result =
+                dialog.showAndWait();
+
+        if (result.isEmpty()) {
+            return null;
+        }
+
+        return result.get().trim();
+    }
+
+    private Double getValidPrice(
+            String title,
+            String header) {
+
+        while (true) {
+
+            String text = getTextInput(
+                    title,
+                    header,
+                    "Price:"
+            );
+
+            if (text == null) {
+                return null;
+            }
+
+            try {
+
+                double price =
+                        Double.parseDouble(text);
+
+                if (price <= 0) {
+
+                    showError(
+                            "Invalid Price",
+                            "Price must be greater than zero."
+                    );
+
+                } else {
+                    return price;
+                }
+
+            } catch (NumberFormatException e) {
+
+                showError(
+                        "Invalid Price",
+                        "Enter numbers only."
+                );
+            }
+        }
+    }
+
+    private Integer getValidQuantity(
+            String title,
+            String header) {
+
+        while (true) {
+
+            String text = getTextInput(
+                    title,
+                    header,
+                    "Quantity:"
+            );
+
+            if (text == null) {
+                return null;
+            }
+
+            try {
+
+                int quantity =
+                        Integer.parseInt(text);
+
+                if (quantity < 0) {
+
+                    showError(
+                            "Invalid Quantity",
+                            "Quantity cannot be negative."
+                    );
+
+                } else {
+                    return quantity;
+                }
+
+            } catch (NumberFormatException e) {
+
+                showError(
+                        "Invalid Quantity",
+                        "Enter a whole number only."
+                );
+            }
+        }
+    }
+
+    private Integer getValidPositiveInteger(
+            String title,
+            String header,
+            String label) {
+
+        while (true) {
+
+            String text = getTextInput(
+                    title,
+                    header,
+                    label
+            );
+
+            if (text == null) {
+                return null;
+            }
+
+            try {
+
+                int value =
+                        Integer.parseInt(text);
+
+                if (value <= 0) {
+
+                    showError(
+                            "Invalid Number",
+                            "Value must be greater than zero."
+                    );
+
+                } else {
+                    return value;
+                }
+
+            } catch (NumberFormatException e) {
+
+                showError(
+                        "Invalid Number",
+                        "Enter a whole number only."
+                );
+            }
+        }
     }
 
     private void showMessage(
@@ -385,3 +976,4 @@ public class MainController {
         alert.showAndWait();
     }
 }
+
